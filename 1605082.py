@@ -3,10 +3,14 @@ import math
 
 
 def getInitialProbs(transitionMatrix):
-    n = len(transitionMatrix)
-    rhs = np.array(np.ones(n)).reshape(1, n)
-
-    return np.matmul(rhs, np.linalg.inv(transitionMatrix))[0]
+    transitionMatrix = np.array(transitionMatrix)
+    evals, evecs = np.linalg.eig(transitionMatrix.T)
+    evec1 = evecs[:, np.isclose(evals, 1)]
+    evec1 = evec1[:, 0]
+    stationary = evec1 / evec1.sum()
+    stationary = stationary.real
+    
+    return stationary
 
 
 def getEmissionProbability(x, state, means, variances):

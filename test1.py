@@ -1,28 +1,28 @@
 import numpy as np
 
+# determination of stationary matrix
+# transitionMatrix = np.array([[0.5, 0.3, 0.2],
+#                              [0.4, 0.2, 0.4],
+#                              [0.0, 0.3, 0.7]])
+transitionMatrix = np.array([[0.2, 0.6, 0.2],
+                             [0.3, 0.0, 0.7],
+                             [0.5, 0.0, 0.5]])
+rhs = np.array([1, 1, 1]).reshape(1, 3)
 
-def viterbi(stateSpace, initialProbs, observations, transitionMatrix, emissionMatrix):
-  numberOfStates = len(stateSpace)
-  numberOfObservations = len(observations)
+# print(transitionMatrix.transpose())
+# print(np.matmul(rhs, np.linalg.inv(transitionMatrix)))
 
-  probabilities = [
-       [0.0] * numberOfObservations for i in range(numberOfStates)]
+evals, evecs = np.linalg.eig(transitionMatrix.T)
+evec1 = evecs[:, np.isclose(evals, 1)]
+evec1 = evec1[:, 0]
+stationary = evec1 / evec1.sum()
+stationary = stationary.real
+print(stationary)
 
-  # first step
-  for i in range(numberOfStates):
-      probabilities[i][0] = emissionMatrix[i][observations[0] -
-          1] * initialProbs[i]
 
-  # rest of the steps
-  for j in range(1, numberOfObservations):
-      for i in range(numberOfStates):
-          for k in range(numberOfStates):
-              probabilities[i][j] = max(probabilities[i][j],
-                                        probabilities[k][j-1] *
-                                        emissionMatrix[i][observations[j] - 1] *
-                                        transitionMatrix[k][i])
+def getInitialProbs(transitionMatrix):
+    n = transitionMatrix.shape[0]
+    rhs = np.array(np.ones(n)).reshape(1, 3)
 
-  print(probabilities)
-    
-    
-viterbi(["H", "C"], [0.8, 0.2], [3, 1, 3], [[0.7, 0.3], [0.4, 0.6]], [[0.2, 0.4, 0.4], [0.5, 0.4, 0.1]])
+    return np.matmul(rhs, np.linalg.inv(transitionMatrix))
+
