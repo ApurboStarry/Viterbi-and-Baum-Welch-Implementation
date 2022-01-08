@@ -85,15 +85,50 @@ def writeToFile(fileName, dataArray):
     file.close()
 
 
-def testViterbi(dataFileName, parameterFileName):
+def testViterbi(dataFileName, parameterFileName, stateSpace):
     n, transitionMatrix, means, variances = getParametersFromFile(
         parameterFileName)
-    stateSpace = ["El Nino", "La Nina"]
+    
     initialProbs = getInitialProbs(transitionMatrix)
     observations = getObservationsFromDataFile(dataFileName)
     viterbiResult = viterbi(stateSpace, initialProbs,
             observations, transitionMatrix, means, variances)
     writeToFile("viterbi-result.txt", viterbiResult)
+    
+    
+class BaumWelch:
+    def __init__(self, dataFileName, parameterFileName, stateSpace):
+        self.observations = getObservationsFromDataFile(dataFileName)
+        n, transitionMatrix, means, variances = getParametersFromFile(
+            parameterFileName)
+        self.n = n
+        self.transitionMatrix = transitionMatrix
+        self.means = means
+        self.variances = variances
+        self.stateSpace = stateSpace
+        self.initialProbs = getInitialProbs(transitionMatrix)
+        
+        
+    def forwardAlgorithm(self):
+        length = len(self.observations)
+        numberOfStates = len(self.stateSpace)
+   
+        dp = [[-1] * numberOfStates for i in range(length)] # length * numberOfStates
+        for i in range(numberOfStates):
+            dp[0][i] = self.initialProbs[i] * getEmissionProbability(self.observations[0], i, self.means, self.variances)
+            
+        for i in range(1, length):
+            for j in range(numberOfStates):
+                summation = 0
+                for k in range(numberOfStates):
+                    summation += dp[i-1][k] * self.transitionMatrix[k][j] * getEmissionProbability(self.observations[i], j, self.means, self.variances)
+                    
+                dp[i][j] = summation
+                
+        print(dp)
 
 
-testViterbi("data.txt", "parameters.txt.txt")
+stateSpace = ["El Nino", "La Nina"]
+# testViterbi("data.txt", "parameters.txt.txt", stateSpace)
+baumWelch = BaumWelch("data.txt", "parameters.txt.txt", stateSpace)
+baumWelch.forwardAlgorithm()
