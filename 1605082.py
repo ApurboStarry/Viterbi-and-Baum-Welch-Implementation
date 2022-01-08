@@ -108,27 +108,125 @@ class BaumWelch:
         self.stateSpace = stateSpace
         self.initialProbs = getInitialProbs(transitionMatrix)
         
+        numberOfObservations = len(self.observations)
+        numberOfStates = len(self.stateSpace)
+        self.forwardTable = [[-1] * numberOfStates for i in range(numberOfObservations)] # numberOfObservations * numberOfStates
+        self.backwardTable = [[-1] * numberOfStates for i in range(numberOfObservations)] # numberOfObservations * numberOfStates
+        self.piStarTable = [[-1] * numberOfStates for i in range(numberOfObservations)] # numberOfObservations * numberOfStates
+        self.piStarStarTable = [[[-1] * numberOfStates for i in range(numberOfStates)] for i in range(numberOfObservations)] # numberOfObservations * numberOfStates * numberOfStates
+        
         
     def forwardAlgorithm(self):
         length = len(self.observations)
         numberOfStates = len(self.stateSpace)
-   
-        dp = [[-1] * numberOfStates for i in range(length)] # length * numberOfStates
+        
         for i in range(numberOfStates):
-            dp[0][i] = self.initialProbs[i] * getEmissionProbability(self.observations[0], i, self.means, self.variances)
+            self.forwardTable[0][i] = self.initialProbs[i] * getEmissionProbability(self.observations[0], i, self.means, self.variances)
             
         for i in range(1, length):
             for j in range(numberOfStates):
                 summation = 0
                 for k in range(numberOfStates):
-                    summation += dp[i-1][k] * self.transitionMatrix[k][j] * getEmissionProbability(self.observations[i], j, self.means, self.variances)
+                    summation += self.forwardTable[i-1][k] * self.transitionMatrix[k][j] * getEmissionProbability(self.observations[i], j, self.means, self.variances)
                     
-                dp[i][j] = summation
+                self.forwardTable[i][j] = summation
+                        
+        
+    def backwardAlgorithm(self):
+        length = len(self.observations)
+        numberOfStates = len(self.stateSpace)
+        
+        for i in range(numberOfStates):
+            self.backwardTable[length - 1][i] = 1
+        
+        for i in range(length - 2, -1, -1):
+            for j in range(numberOfStates):
+                summation = 0
+                for k in range(numberOfStates):
+                    summation += self.backwardTable[i+1][k] * self.transitionMatrix[j][k] * getEmissionProbability(self.observations[i], j, self.means, self.variances)
+                    
+                self.backwardTable[i][j] = summation
+    
+    
+    def fillPiStarTable(self):
+        length = len(self.observations)
+        numberOfStates = len(self.stateSpace)
+        
+        for i in range(length):
+            for j in range(numberOfStates):
+                self.piStarTable[i][j] = self.forwardTable[i][j] * self.backwardTable[i][j]
+
+    
+    def fillPiStarStarTable(self):
+        # print(len(self.piStarStarTable), len(self.piStarStarTable[0]), len(self.piStarStarTable[0][0]))
+        for i in range(len(self.piStarStarTable) - 1):
+            for j in range(len(self.piStarStarTable[0])):
+                for k in range(len(self.piStarStarTable[0][0])):
+                    self.piStarStarTable[i][j][k] = self.forwardTable[i][k] * self.transitionMatrix[j][k] * getEmissionProbability(self.observations[i + 1], k, self.means, self.variances) * self.backwardTable[i+1][k]
+
+
+    def updateTransitionMatrix(self):
+        # print(self.piStarStarTable[0])
+        numberOfStates = len(self.stateSpace)
+        numberOfObservations = len(self.observations)
+        
+        for i in range(numberOfStates):
+            for j in range(numberOfStates):
+                summation = 0
+                for k in range(numberOfObservations):
+                    summation += self.piStarStarTable[k][i][j]
+                    
+                self.transitionMatrix[i][j] = summation
+
+
+    def updateMeans(self):
+        numberOfStates = len(self.stateSpace)
+        numberOfObservations = len(self.observations)
+        
+        for i in range(numberOfStates):
+            numerator = 0
+            denominator = 0
+            
+            for j in range(numberOfObservations):
+                numerator += self.piStarTable[j][i] * self.observations[j]
+                denominator += self.piStarTable[j][i]
                 
-        print(dp)
+            if denominator > 0: self.means[i] = numerator / denominator
+            
+            
+    def updateVariances(self):
+        numberOfStates = len(self.stateSpace)
+        numberOfObservations = len(self.observations)
+
+        for i in range(numberOfStates):
+            numerator = 0
+            denominator = 0
+
+            for j in range(numberOfObservations):
+                numerator += self.piStarTable[j][i] * (self.observations[j] - self.means[i]) ** 2
+                denominator += self.piStarTable[j][i]
+
+            if denominator > 0:
+                self.means[i] = math.sqrt(numerator / denominator)
+
+    
+    def baumWelchAlgo(self):
+        # self.initializeBaumWelchParameters()
+        
+        self.forwardAlgorithm()
+        self.backwardAlgorithm()
+        self.fillPiStarTable()
+        self.fillPiStarStarTable()
+        
+        self.updateTransitionMatrix()
+        self.updateMeans()
+        self.updateVariances()
+        
 
 
 stateSpace = ["El Nino", "La Nina"]
 # testViterbi("data.txt", "parameters.txt.txt", stateSpace)
 baumWelch = BaumWelch("data.txt", "parameters.txt.txt", stateSpace)
-baumWelch.forwardAlgorithm()
+# baumWelch.forwardAlgorithm()
+# baumWelch.backwardAlgorithm()
+baumWelch.baumWelchAlgo()
