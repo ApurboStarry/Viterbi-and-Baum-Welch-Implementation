@@ -207,7 +207,7 @@ class BaumWelch:
                 denominator += self.piStarTable[j][i]
 
             if denominator > 0:
-                self.means[i] = math.sqrt(numerator / denominator)
+                self.means[i] = numerator / denominator
 
 
     def initializeBaumWelchParameters(self):
