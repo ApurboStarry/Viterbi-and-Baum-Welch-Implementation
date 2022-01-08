@@ -209,18 +209,38 @@ class BaumWelch:
             if denominator > 0:
                 self.means[i] = math.sqrt(numerator / denominator)
 
+
+    def initializeBaumWelchParameters(self):
+        import random
+        numberOfStates = len(self.stateSpace)
+        
+        newTransitionMatrix = []
+
+        for i in range(numberOfStates):
+            tempTransitionMatrix = []
+            summation = 0
+            for j in range(numberOfStates - 1):
+                transitionProb = random.uniform(0, 1 - summation)
+                summation += transitionProb
+                tempTransitionMatrix.append(transitionProb)
+            tempTransitionMatrix.append(1 - summation)
+            newTransitionMatrix.append(tempTransitionMatrix)
+            
+        self.transitionMatrix = newTransitionMatrix
+    
     
     def baumWelchAlgo(self):
-        # self.initializeBaumWelchParameters()
+        self.initializeBaumWelchParameters()
         
-        self.forwardAlgorithm()
-        self.backwardAlgorithm()
-        self.fillPiStarTable()
-        self.fillPiStarStarTable()
-        
-        self.updateTransitionMatrix()
-        self.updateMeans()
-        self.updateVariances()
+        for i in range(10):
+            self.forwardAlgorithm()
+            self.backwardAlgorithm()
+            self.fillPiStarTable()
+            self.fillPiStarStarTable()
+
+            self.updateTransitionMatrix()
+            self.updateMeans()
+            self.updateVariances()
         
 
 
