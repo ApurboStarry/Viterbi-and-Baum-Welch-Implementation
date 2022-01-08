@@ -229,6 +229,29 @@ class BaumWelch:
         self.transitionMatrix = newTransitionMatrix
     
     
+    def writeParametersToFile(self):
+        numberOfStates = len(self.stateSpace)
+        file = open("Baum Welch Parameters", 'w')
+        file.write(str(numberOfStates) + "\n")
+        # for line in dataArray:
+        #     file.write(line + "\n")
+            
+        for i in range(numberOfStates):
+            for j in range(numberOfStates):
+                file.write(str(self.transitionMatrix[i][j]) + " ")
+            file.write("\n")
+        
+        for i in range(numberOfStates):
+            file.write(str(self.means[i]) + " ")
+        file.write("\n")
+        
+        for i in range(numberOfStates):
+            file.write(str(self.variances[i]) + " ")
+        file.write("\n")
+            
+        file.close()
+    
+    
     def baumWelchAlgo(self):
         self.initializeBaumWelchParameters()
         
@@ -241,6 +264,8 @@ class BaumWelch:
             self.updateTransitionMatrix()
             self.updateMeans()
             self.updateVariances()
+            
+        self.writeParametersToFile()
         
 
 
